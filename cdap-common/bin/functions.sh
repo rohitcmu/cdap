@@ -627,6 +627,8 @@ cdap_start_java() {
   JAVA_HEAPMAX=${JAVA_HEAPMAX:-${!JAVA_HEAP_VAR}}
   export JAVA_HEAPMAX
   local __defines="-Dcdap.service=${CDAP_SERVICE} ${JAVA_HEAPMAX} -Duser.dir=${LOCAL_DIR} -Djava.io.tmpdir=${TEMP_DIR}"
+  logecho "$(date) Starting CDAP ${__name} service on ${HOSTNAME}"
+  echo
   if [[ ${CDAP_SERVICE} == master ]]; then
     # Determine SPARK_HOME
     cdap_set_spark || logecho "Could not determine SPARK_HOME! Spark support unavailable!"
@@ -642,12 +644,29 @@ cdap_start_java() {
     if [[ -n ${JAVA_LIBRARY_PATH} ]]; then
       __defines+=" -Djava.library.path=${JAVA_LIBRARY_PATH}"
     fi
-    __startup_checks=${CDAP_STARTUP_CHECKS:-$(cdap_get_conf "master.startup.checks.enabled" "${CDAP_CONF}"/cdap-site.xml true)}
+    # Check if we're HDP 2.2+
+    if [[ $(which hdp-select 2>/dev/null) ]]; then
+      local readonly __hdp_version=$(hdp-select status hadoop-client | awk '{print $3}')
+      if [[ ${OPTS} =~ -Dhdp.version ]]; then
+        local __my_hdp_version=$(echo ${OPTS} | grep -oE '\-Dhdp.version=\d+\.\d+\.\d+\.\d+-\d*' | cut -d= -f2)
+        if [[ ${__my_hdp_version} != ${__hdp_version} ]]; then
+          logecho "[WARN] HDP version mismatch!"
+          logecho "[WARN] Detected HDP version: ${__hdp_version}"
+          logecho "[WARN] Configured HDP version: ${__my_hdp_version}"
+          echo
+          logecho "[WARN] Using configured HDP version: ${__my_hdp_version}"
+        fi
+      fi
+      # No HDP version specified in OPTS or incorrect format, appending ours
+      __defines+=" -Dhdp.version=${__hdp_version}"
+      logecho "Detected HDP version ${__hdp_version} and adding to CDAP Master command line"
+    fi
 
     # Build and upload coprocessor jars
     logecho "$(date) Ensuring required HBase coprocessors are on HDFS"
     cdap_setup_coprocessors </dev/null >>${__logfile} 2>&1 || die "Could not setup coprocessors. Please check ${__logfile} for more information."
 
+    __startup_checks=${CDAP_STARTUP_CHECKS:-$(cdap_get_conf "master.startup.checks.enabled" "${CDAP_CONF}"/cdap-site.xml true)}
     if [[ ${__startup_checks} == true ]]; then
       logecho "$(date) Running CDAP Master startup checks -- this may take a few minutes"
       "${JAVA}" ${JAVA_HEAPMAX} ${__explore} ${OPTS} -cp ${CLASSPATH} co.cask.cdap.master.startup.MasterStartupTool </dev/null >>${__logfile} 2>&1
@@ -656,7 +675,6 @@ cdap_start_java() {
       fi
     fi
   fi
-  logecho "$(date) Starting CDAP ${__name} service on ${HOSTNAME}"
   "${JAVA}" -version 2>>${__logfile}
   ulimit -a >>${__logfile}
   __defines+=" ${OPTS}"
