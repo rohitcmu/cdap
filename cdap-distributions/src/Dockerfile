@@ -1,4 +1,4 @@
-# Copyright © 2012-2016 Cask Data, Inc.
+# Copyright © 2012-2017 Cask Data, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +18,17 @@
 # This Dockerfile will build a CDAP image from scratch utilizing ubuntu 12.04 as a base image.
 # The assumption is that you are running this from the root of the cdap directory structure.
 #
-FROM ubuntu:12.04
+FROM ubuntu:16.04
 MAINTAINER Cask Data <ops@cask.co>
+
+# update system
+RUN apt-get update && \
+  apt-get dist-upgrade -y && \
+  apt-get install -y curl
 
 # grab gosu for easy step-down from root
 ENV GOSU_VERSION 1.7
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends \
-    curl \
-    git && \
+RUN apt-get install -y --no-install-recommends git && \
   curl -vL \
     "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" > \
     /usr/local/bin/gosu && \
