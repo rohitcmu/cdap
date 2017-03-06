@@ -39,28 +39,34 @@ public class WikipediaPipelineApp extends AbstractApplication<WikipediaPipelineA
   static final String LIKES_TO_DATASET_MR_NAME = "LikesToDataset";
   static final String WIKIPEDIA_TO_DATASET_MR_NAME = "WikiDataToDataset";
 
+  public static final String NAMESPACE_ARG = "namespace";
+
   @Override
   public void configure() {
-    addStream(new Stream(PAGE_TITLES_STREAM));
-    addStream(new Stream(RAW_WIKIPEDIA_STREAM));
     addMapReduce(new StreamToDataset(LIKES_TO_DATASET_MR_NAME));
-    addMapReduce(new StreamToDataset(WIKIPEDIA_TO_DATASET_MR_NAME));
-    addMapReduce(new WikipediaDataDownloader());
-    addMapReduce(new WikiContentValidatorAndNormalizer());
-    addMapReduce(new TopNMapReduce());
-    addSpark(new SparkWikipediaClustering(getConfig()));
-    createDataset(PAGE_TITLES_DATASET, KeyValueTable.class,
-                  DatasetProperties.builder().setDescription("Page titles dataset").build());
-    createDataset(RAW_WIKIPEDIA_DATASET, KeyValueTable.class,
-                  DatasetProperties.builder().setDescription("Raw Wikipedia dataset").build());
-    createDataset(NORMALIZED_WIKIPEDIA_DATASET, KeyValueTable.class,
-                  DatasetProperties.builder().setDescription("Normalized Wikipedia dataset").build());
-    createDataset(SPARK_CLUSTERING_OUTPUT_DATASET, Table.class,
-                  DatasetProperties.builder().setDescription("Spark clustering output dataset").build());
-    createDataset(MAPREDUCE_TOPN_OUTPUT, KeyValueTable.class,
-                  DatasetProperties.builder().setDescription("MapReduce top-'N'-words output dataset").build());
-    addWorkflow(new WikipediaPipelineWorkflow(getConfig()));
-    addService(new WikipediaService());
+    if (getConfig().createPrograms) {
+      addMapReduce(new StreamToDataset(WIKIPEDIA_TO_DATASET_MR_NAME));
+      addMapReduce(new WikipediaDataDownloader());
+      addMapReduce(new WikiContentValidatorAndNormalizer());
+      addMapReduce(new TopNMapReduce());
+      addSpark(new SparkWikipediaClustering(getConfig()));
+      addWorkflow(new WikipediaPipelineWorkflow(getConfig()));
+      addService(new WikipediaService());
+    }
+    if (getConfig().createDatasets) {
+      addStream(new Stream(PAGE_TITLES_STREAM));
+      addStream(new Stream(RAW_WIKIPEDIA_STREAM));
+      createDataset(PAGE_TITLES_DATASET, KeyValueTable.class,
+                    DatasetProperties.builder().setDescription("Page titles dataset").build());
+      createDataset(RAW_WIKIPEDIA_DATASET, KeyValueTable.class,
+                    DatasetProperties.builder().setDescription("Raw Wikipedia dataset").build());
+      createDataset(NORMALIZED_WIKIPEDIA_DATASET, KeyValueTable.class,
+                    DatasetProperties.builder().setDescription("Normalized Wikipedia dataset").build());
+      createDataset(SPARK_CLUSTERING_OUTPUT_DATASET, Table.class,
+                    DatasetProperties.builder().setDescription("Spark clustering output dataset").build());
+      createDataset(MAPREDUCE_TOPN_OUTPUT, KeyValueTable.class,
+                    DatasetProperties.builder().setDescription("MapReduce top-'N'-words output dataset").build());
+    }
   }
 
   /**
@@ -70,13 +76,23 @@ public class WikipediaPipelineApp extends AbstractApplication<WikipediaPipelineA
 
     @Nullable
     public final String clusteringAlgorithm;
+    @Nullable
+    public final boolean createDatasets;
+    @Nullable
+    public final boolean createPrograms;
 
     public WikipediaAppConfig() {
       this(null);
     }
 
     public WikipediaAppConfig(@Nullable String clusteringAlgorithm) {
+      this(clusteringAlgorithm, true, true);
+    }
+
+    public WikipediaAppConfig(@Nullable String clusteringAlgorithm, boolean createDatasets, boolean createPrograms) {
       this.clusteringAlgorithm = clusteringAlgorithm == null ? "lda" : clusteringAlgorithm;
+      this.createDatasets = createDatasets;
+      this.createPrograms = createPrograms;
     }
   }
 }

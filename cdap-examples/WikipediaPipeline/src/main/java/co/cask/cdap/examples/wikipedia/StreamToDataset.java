@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015-2016 Cask Data, Inc.
+ * Copyright © 2015-2017 Cask Data, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -61,6 +61,7 @@ public class StreamToDataset extends AbstractMapReduce {
   @Override
   public void initialize() throws Exception {
     MapReduceContext context = getContext();
+    String namespace = context.getRuntimeArguments().get(WikipediaPipelineApp.NAMESPACE_ARG);
     Job job = context.getHadoopJob();
     job.setNumReduceTasks(0);
     WorkflowToken workflowToken = context.getWorkflowToken();
@@ -79,8 +80,13 @@ public class StreamToDataset extends AbstractMapReduce {
     }
     LOG.info("Using '{}' as the input stream and '{}' as the output dataset.", inputStream, outputDataset);
     job.setMapperClass(mapper);
-    context.addInput(Input.ofStream(inputStream));
-    context.addOutput(Output.ofDataset(outputDataset));
+    if (namespace != null) {
+      context.addInput(Input.ofStream(inputStream).fromNamespace(namespace));
+      context.addOutput(Output.ofDataset(outputDataset).fromNamespace(namespace));
+    } else {
+      context.addInput(Input.ofStream(inputStream));
+      context.addOutput(Output.ofDataset(outputDataset));
+    }
   }
 
   @Override

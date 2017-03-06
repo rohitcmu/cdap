@@ -55,11 +55,17 @@ public class WikipediaDataDownloader extends AbstractMapReduce {
   @Override
   public void initialize() throws Exception {
     MapReduceContext context = getContext();
+    String namespace = context.getRuntimeArguments().get(WikipediaPipelineApp.NAMESPACE_ARG);
     Job job = context.getHadoopJob();
     job.setMapperClass(WikipediaDataDownloaderMapper.class);
     job.setNumReduceTasks(0);
-    context.addInput(Input.ofDataset(WikipediaPipelineApp.PAGE_TITLES_DATASET));
-    context.addOutput(Output.ofDataset(WikipediaPipelineApp.RAW_WIKIPEDIA_DATASET));
+    if (namespace != null) {
+      context.addInput(Input.ofDataset(WikipediaPipelineApp.PAGE_TITLES_DATASET).fromNamespace(namespace));
+      context.addOutput(Output.ofDataset(WikipediaPipelineApp.RAW_WIKIPEDIA_DATASET).fromNamespace(namespace));
+    } else {
+      context.addInput(Input.ofDataset(WikipediaPipelineApp.PAGE_TITLES_DATASET));
+      context.addOutput(Output.ofDataset(WikipediaPipelineApp.RAW_WIKIPEDIA_DATASET));
+    }
   }
 
   @Override
