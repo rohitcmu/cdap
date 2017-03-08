@@ -35,11 +35,11 @@ class ScalaSparkKMeans extends SparkMain {
     val maxIterations = arguments.get("max.iterations").map(_.toInt).getOrElse(10)
     val k = arguments.get("num.topics").map(_.toInt).getOrElse(10)
 
-    val namespace = sec.getRuntimeArguments.get(WikipediaPipelineApp.NAMESPACE_ARG)
+    val dataNamespace = sec.getRuntimeArguments.get(WikipediaPipelineApp.NAMESPACE_ARG)
 
     // Pre-process data for LDA
     val (corpus, vocabArray, _) = ClusteringUtils.preProcess(
-      if (namespace != null) sc.fromDataset(namespace, WikipediaPipelineApp.NORMALIZED_WIKIPEDIA_DATASET)
+      if (dataNamespace != null) sc.fromDataset(dataNamespace, WikipediaPipelineApp.NORMALIZED_WIKIPEDIA_DATASET)
       else sc.fromDataset(WikipediaPipelineApp.NORMALIZED_WIKIPEDIA_DATASET), arguments)
     corpus.cache()
 
@@ -64,7 +64,7 @@ class ScalaSparkKMeans extends SparkMain {
       }
     }
 
-    ClusteringUtils.storeResults(sc, sec, topTenTermsWithWeights, namespace,
+    ClusteringUtils.storeResults(sc, sec, topTenTermsWithWeights, dataNamespace,
       WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET)
   }
 }

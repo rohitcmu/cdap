@@ -76,9 +76,7 @@ public class WikipediaPipelineApp extends AbstractApplication<WikipediaPipelineA
 
     @Nullable
     public final String clusteringAlgorithm;
-    @Nullable
     public final boolean createDatasets;
-    @Nullable
     public final boolean createPrograms;
 
     public WikipediaAppConfig() {

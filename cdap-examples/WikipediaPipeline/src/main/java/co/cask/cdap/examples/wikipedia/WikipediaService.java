@@ -51,8 +51,6 @@ public class WikipediaService extends AbstractService {
     addHandler(new WikipediaHandler());
   }
 
-
-
   /**
    * {@link HttpServiceHandler} that contains endpoints for serving results of analyses of Wikipedia data.
    */
@@ -69,12 +67,9 @@ public class WikipediaService extends AbstractService {
     @Path("/lda/topics")
     public void getTopics(HttpServiceRequest request, HttpServiceResponder responder) {
       List<Integer> topics = new ArrayList<>();
-      String namespace = getContext().getRuntimeArguments().get("namespace");
-      if (namespace != null) {
-        clusteringTable = getContext().getDataset(namespace, WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
-      } else {
-        clusteringTable = getContext().getDataset(WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
-      }
+      String dataNamespace = getContext().getRuntimeArguments().get("namespace");
+      dataNamespace = dataNamespace == null ? getContext().getNamespace() : dataNamespace;
+      clusteringTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
       Scanner scanner = clusteringTable.scan(null, null);
       Row row;
       while ((row = scanner.next()) != null) {
@@ -93,12 +88,9 @@ public class WikipediaService extends AbstractService {
     @Path("/lda/topics/{topic}")
     public void getTopic(HttpServiceRequest request, HttpServiceResponder responder,
                          @PathParam("topic") Integer topic) {
-      String namespace = getContext().getRuntimeArguments().get("namespace");
-      if (namespace != null) {
-        clusteringTable = getContext().getDataset(namespace, WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
-      } else {
-        clusteringTable = getContext().getDataset(WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
-      }
+      String dataNamespace = getContext().getRuntimeArguments().get("namespace");
+      dataNamespace = dataNamespace == null ? getContext().getNamespace() : dataNamespace;
+      clusteringTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
       Row row = clusteringTable.get(Bytes.toBytes(topic));
       if (row.isEmpty()) {
         responder.sendError(404, String.format("Topic %s was not found.", topic));
@@ -120,12 +112,9 @@ public class WikipediaService extends AbstractService {
     @Path("/topn/words")
     public void getTopNWords(HttpServiceRequest request, HttpServiceResponder responder) {
       List<JsonObject> words = new ArrayList<>();
-      String namespace = getContext().getRuntimeArguments().get("namespace");
-      if (namespace != null) {
-        topNKVTable = getContext().getDataset(namespace, WikipediaPipelineApp.MAPREDUCE_TOPN_OUTPUT);
-      } else {
-        topNKVTable = getContext().getDataset(WikipediaPipelineApp.MAPREDUCE_TOPN_OUTPUT);
-      }
+      String dataNamespace = getContext().getRuntimeArguments().get("namespace");
+      dataNamespace = dataNamespace == null ? getContext().getNamespace() : dataNamespace;
+      topNKVTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.MAPREDUCE_TOPN_OUTPUT);
       CloseableIterator<KeyValue<byte[], byte[]>> scanner = topNKVTable.scan(null, null);
       while (scanner.hasNext()) {
         KeyValue<byte[], byte[]> next = scanner.next();
