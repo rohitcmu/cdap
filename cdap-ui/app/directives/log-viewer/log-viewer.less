@@ -464,69 +464,71 @@ my-log-viewer {
           width: ~"calc(100% - 15px)";
         }
 
+        &.display-time {
+          position: relative;
+          top: 0;
+        }
+
+        &.level {
+          position: relative;
+          top: 0;
+        }
+
         &.row-expanded {
           background-color: @selected-row-color;
         }
-      }
 
-      tr td {
-        line-height: 18px;
-
-        .fa-chevron-right {
-          color: #393939;
-          position: relative;
-          font-size: 8px;
-          bottom: 1px;
-          margin-left: 4px;
-          margin-right: 2px;
-        }
-        .fa-chevron-down {
-          color: #393939;
-          position: relative;
-          top: -12px;
-          font-size: 8px;
-          bottom: 1px;
-          margin-left: 4px;
-          margin-right: 0;
-        }
-      }
-
-      tr .log-message {
-        padding-right: 5px;
-      }
-
-      tr.display-time {
-        position: relative;
-        top: 0;
-      }
-      tr.level {
-        position: relative;
-        top: 0;
-      }
-
-      tr.row-selected {
-        white-space: normal;
-        background-color: @selected-row-color;
-
-        .display-time,
-        .level {
-          position: relative;
-          top: -9px;
-        }
-
-        td,
-        span {
+        &.row-selected {
           white-space: normal;
-          border-bottom: none;
+          background-color: @selected-row-color;
 
-          .source {
-            word-break: break-all;
-            text-overflow: inherit;
+          .display-time,
+          .level {
+            position: relative;
+            top: -9px;
+          }
+
+          td,
+          span {
+            white-space: normal;
+            border-bottom: none;
+
+            .source {
+              word-break: break-all;
+              text-overflow: inherit;
+            }
           }
         }
-      }
-      tr.well i {
-        font-size: 12px;
+
+        &.well i {
+          font-size: 12px;
+        }
+
+        td {
+          line-height: 18px;
+
+          .fa-chevron-right {
+            color: #393939;
+            position: relative;
+            font-size: 8px;
+            bottom: 1px;
+            margin-left: 4px;
+            margin-right: 2px;
+          }
+          .fa-chevron-down {
+            color: #393939;
+            position: relative;
+            top: -12px;
+            font-size: 8px;
+            bottom: 1px;
+            margin-left: 4px;
+            margin-right: 0;
+          }
+        }
+
+        .log-message {
+          padding-right: 5px;
+        }
       }
 
       .stack-trace {
