@@ -14,7 +14,7 @@
  * the License.
  */
 
-function LogViewerController ($scope, LogViewerStore, myLogsApi, LOGVIEWERSTORE_ACTIONS, MyCDAPDataSource, $sce, myCdapUrl, $timeout, $q, moment, myAlertOnValium) {
+function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIEWERSTORE_ACTIONS, MyCDAPDataSource, $sce, myCdapUrl, $timeout, $q, moment, myAlertOnValium) {
   'ngInject';
 
   /**
@@ -488,6 +488,8 @@ function LogViewerController ($scope, LogViewerStore, myLogsApi, LOGVIEWERSTORE_
 
     //Scroll table to the top
     angular.element(document.getElementsByClassName('logs-table'))[0].scrollTop = 0;
+    // binds window element to check whether scrollbar has appeared on resize event
+    angular.element($window).bind('resize', checkForScrollbar);
 
     myLogsApi.nextLogsJsonOffset({
       namespace : vm.namespaceId,
@@ -566,6 +568,17 @@ function LogViewerController ($scope, LogViewerStore, myLogsApi, LOGVIEWERSTORE_
     return dateObj.month + '/' + dateObj.day + '/' + dateObj.year + ' ' + dateObj.hours + ':' + dateObj.minutes + ':' + dateObj.seconds;
   }
 
+  function checkForScrollbar() {
+    $timeout(function(){
+      let tbodyEl = angular.element(document.querySelector('.logs-table table tbody'))[0];
+      if (tbodyEl.clientHeight < tbodyEl.scrollHeight) {
+        vm.scrollBarShown = true;
+      } else {
+        vm.scrollBarShown = false;
+      }
+    });
+  }
+
   vm.toggleLogExpansion = function() {
     let len = vm.displayData.length;
     vm.toggleExpandAll = !vm.toggleExpandAll;
@@ -594,6 +607,7 @@ function LogViewerController ($scope, LogViewerStore, myLogsApi, LOGVIEWERSTORE_
         vm.displayData[i].selected = vm.toggleExpandAll;
       }
     }
+    checkForScrollbar();
   };
 
   vm.includeEvent = function(eventType){
@@ -645,6 +659,7 @@ function LogViewerController ($scope, LogViewerStore, myLogsApi, LOGVIEWERSTORE_
     */
     //Clean slate
     vm.displayData = vm.data;
+    checkForScrollbar();
   };
 
   vm.highlight = (text) => {

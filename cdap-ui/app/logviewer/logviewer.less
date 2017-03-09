@@ -73,10 +73,20 @@ body.state-logviewerhome {
   my-log-viewer .log-viewer-container {
     .logs-table {
       height: calc(~"100vh - 277px");
+
+      /* 46px: height of header */
+      /* had to set this for scrollbar to show up on Firefox */
+      tbody {
+        height: calc(~"100vh - 277px - 46px");
+      }
     }
 
     &.full-screen .logs-table {
       height: calc(~"100vh - 166px");
+
+      tbody {
+        height: calc(~"100vh - 166px - 46px");
+      }
     }
   }
 }
