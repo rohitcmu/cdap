@@ -57,6 +57,8 @@ public enum ElementType {
 
   PROGRAM("program", new Noun("program"), new Noun("Program"), null, null, ArgumentName.PROGRAM),
 
+  SCHEDULE("schedule", new Noun("schedule"), new Noun("Schedule"), null, null, ArgumentName.SCHEDULE),
+
   FLOW("flow", new Noun("flow"), new Noun("Flow"), ProgramType.FLOW, null, ArgumentName.FLOW,
        Capability.RUNS, Capability.LOGS, Capability.LIVE_INFO, Capability.STATUS, Capability.START, Capability.STOP,
        Capability.LIST, Capability.RUNTIME_ARGS, Capability.PREFERENCES),

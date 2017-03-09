@@ -21,17 +21,21 @@ import co.cask.cdap.api.schedule.Schedule;
 import co.cask.cdap.api.schedule.ScheduleSpecification;
 import co.cask.cdap.client.config.ClientConfig;
 import co.cask.cdap.client.util.RESTClient;
+import co.cask.cdap.common.AlreadyExistsException;
 import co.cask.cdap.common.NotFoundException;
 import co.cask.cdap.common.UnauthenticatedException;
 import co.cask.cdap.proto.Id;
+import co.cask.cdap.proto.ScheduleInstanceConfiguration;
 import co.cask.cdap.proto.ScheduledRuntime;
 import co.cask.cdap.proto.codec.ScheduleSpecificationCodec;
 import co.cask.cdap.proto.id.ScheduleId;
 import co.cask.cdap.proto.id.WorkflowId;
 import co.cask.cdap.security.spi.authorization.UnauthorizedException;
 import co.cask.common.http.HttpMethod;
+import co.cask.common.http.HttpRequest;
 import co.cask.common.http.HttpResponse;
 import co.cask.common.http.ObjectResponse;
+import com.google.common.base.Charsets;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -67,6 +71,49 @@ public class ScheduleClient {
 
   public ScheduleClient(ClientConfig config) {
     this(config, new RESTClient(config));
+  }
+
+  @Deprecated
+  public void add(Id.Schedule schedule, ScheduleInstanceConfiguration configuration) throws IOException,
+    UnauthenticatedException, NotFoundException, UnauthorizedException, AlreadyExistsException {
+    add(schedule.toEntityId(), configuration);
+  }
+
+  public void add(ScheduleId scheduleId, ScheduleInstanceConfiguration configuration) throws IOException,
+    UnauthenticatedException, NotFoundException, UnauthorizedException, AlreadyExistsException {
+
+    String path = String.format("apps/%s/versions/%s/schedules/%s",
+                                scheduleId.getApplication(), scheduleId.getVersion(), scheduleId.getSchedule());
+    URL url = config.resolveNamespacedURLV3(scheduleId.getNamespaceId(), path);
+    HttpRequest request = HttpRequest.put(url).withBody(GSON.toJson(configuration)).build();
+    HttpResponse response = restClient.execute(request, config.getAccessToken(),
+                                               HttpURLConnection.HTTP_NOT_FOUND,
+                                               HttpURLConnection.HTTP_CONFLICT);
+    if (HttpURLConnection.HTTP_NOT_FOUND == response.getResponseCode()) {
+      throw new NotFoundException(scheduleId);
+    } else if (HttpURLConnection.HTTP_CONFLICT == response.getResponseCode()) {
+      throw new AlreadyExistsException(scheduleId);
+    }
+  }
+
+  @Deprecated
+  public void update(Id.Schedule schedule, ScheduleInstanceConfiguration configuration) throws IOException,
+    UnauthenticatedException, NotFoundException, UnauthorizedException, AlreadyExistsException {
+    add(schedule, configuration);
+  }
+
+  public void update(ScheduleId scheduleId, ScheduleInstanceConfiguration configuration) throws IOException,
+    UnauthenticatedException, NotFoundException, UnauthorizedException, AlreadyExistsException {
+
+    String path = String.format("apps/%s/versions/%s/schedules/%s/update",
+                                scheduleId.getApplication(), scheduleId.getVersion(), scheduleId.getSchedule());
+    URL url = config.resolveNamespacedURLV3(scheduleId.getNamespaceId(), path);
+    HttpRequest request = HttpRequest.post(url).withBody(GSON.toJson(configuration)).build();
+    HttpResponse response = restClient.execute(request, config.getAccessToken(),
+                                               HttpURLConnection.HTTP_NOT_FOUND);
+    if (HttpURLConnection.HTTP_NOT_FOUND == response.getResponseCode()) {
+      throw new NotFoundException(scheduleId);
+    }
   }
 
   @Deprecated
@@ -167,7 +214,25 @@ public class ScheduleClient {
   }
 
   @Deprecated
-  public String getStatus(Id.Schedule schedule)
+  public void delete(Id.Schedule schedule)
+    throws IOException, UnauthenticatedException, NotFoundException, UnauthorizedException {
+    resume(schedule.toEntityId());
+  }
+
+  public void delete(ScheduleId scheduleId) throws IOException, UnauthenticatedException, NotFoundException,
+    UnauthorizedException {
+    String path = String.format("apps/%s/versions/%s/schedules/%s", scheduleId.getApplication(),
+                                scheduleId.getVersion(), scheduleId.getSchedule());
+    URL url = config.resolveNamespacedURLV3(scheduleId.toId().getNamespace(), path);
+    HttpResponse response = restClient.execute(HttpMethod.DELETE, url, config.getAccessToken(),
+                                               HttpURLConnection.HTTP_NOT_FOUND);
+    if (HttpURLConnection.HTTP_NOT_FOUND == response.getResponseCode()) {
+      throw new NotFoundException(scheduleId);
+    }
+  }
+
+  @Deprecated
+  public String getStatus(Id.Schedule schedule, String programType)
     throws IOException, UnauthenticatedException, NotFoundException, UnauthorizedException {
     return getStatus(schedule.toEntityId());
   }
@@ -186,5 +251,27 @@ public class ScheduleClient {
     Map<String, String> responseObject
       = ObjectResponse.<Map<String, String>>fromJsonBody(response, MAP_STRING_STRING_TYPE, GSON).getResponseObject();
     return responseObject.get("status");
+  }
+
+  @Deprecated
+  public String getWorkflowSchedules(Id.Workflow workflow)
+    throws IOException, UnauthenticatedException, NotFoundException, UnauthorizedException {
+    return getWorkflowSchedules(workflow.toEntityId());
+  }
+
+  public String getWorkflowSchedules(WorkflowId workflowId) throws IOException, UnauthenticatedException, NotFoundException,
+    UnauthorizedException {
+    String path = String.format("apps/%s/versions/%s/workflows/%s/schedules", workflowId.getApplication(),
+                                workflowId.getVersion(), workflowId.getProgram());
+    URL url = config.resolveNamespacedURLV3(workflowId.getParent().getParent(), path);
+    HttpResponse response = restClient.execute(HttpMethod.GET, url, config.getAccessToken(),
+                                               HttpURLConnection.HTTP_NOT_FOUND);
+    if (HttpURLConnection.HTTP_NOT_FOUND == response.getResponseCode()) {
+      throw new NotFoundException(workflowId);
+    }
+
+    // TODO: Figure out how to do this the proper way using a response object
+    Gson formatterGson = new GsonBuilder().setPrettyPrinting().create();
+    return formatterGson.toJson(new String(response.getResponseBody(), Charsets.UTF_8));
   }
 }

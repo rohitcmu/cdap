@@ -35,6 +35,7 @@ public enum ArgumentName {
   SERVICE("app-id.service-id"),
   MAPREDUCE("app-id.mapreduce-id"),
   SPARK("app-id.spark-id"),
+  SCHEDULE("app-id.schedule-id"),
 
   APP_CONFIG("app-config"),
   APP_CONFIG_FILE("app-config-file"),
@@ -70,12 +71,16 @@ public enum ArgumentName {
   QUERY("query"),
   APP("app-id"),
   APP_VERSION("app-version"),
+  PROGRAM_TYPE("program-type"),
   PROGRAM_TYPES("program-types"),
   VIEW("view-id"),
   HTTP_METHOD("http-method"),
   ENDPOINT("endpoint"),
   HEADERS("headers"),
   HTTP_BODY("body"),
+  CRON_EXPRESSION("cron-expression"),
+  SCHEDULE_PROPERTIES("schedule-properties"),
+  SCHEDULE_RUN_CONSTRAINTS("schedule-run-constraints"),
   /**
    * stream format
    */
