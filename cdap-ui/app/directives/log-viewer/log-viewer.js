@@ -111,8 +111,8 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
     'ERROR' : true,
     'WARN' : true,
     'INFO' : true,
-    'DEBUG' : true,
-    'TRACE' : true
+    'DEBUG' : false,
+    'TRACE' : false
   };
 
   vm.selectedLogLevel = 'TRACE';
