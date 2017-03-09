@@ -79,8 +79,7 @@
   </my-timeline>
 
   <!-- LOGS TABLE -->
-  <div class="logs-table"
-       in-view-container>
+  <div class="logs-table">
     <table class="table table-bordered scroll scroll-table">
       <thead>
         <tr ng-class="{ 'smaller': LogViewer.scrollBarShown }">
@@ -133,6 +132,7 @@
              infinite-scroll-immediate-check="false"
              infinite-scroll-container="'.logs-table'"
              infinite-scroll-disabled="(LogViewer.statusType === 0 || LogViewer.statusType === 1) && LogViewer.displayData.length === LogViewer.totalCount"
+             in-view-container
              >
 
         <tr ng-class="{'has-stack-trace' : entry.log.stackTrace.length > 0, 'row-selected' : $index+1  < LogViewer.displayData.length && LogViewer.displayData[$index + 1].stackTrace, 'row-expanded' : !entry.stackTrace && entry.selected }"
