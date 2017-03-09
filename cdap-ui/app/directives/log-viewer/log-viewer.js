@@ -115,7 +115,12 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
     'TRACE' : false
   };
 
-  vm.selectedLogLevel = 'TRACE';
+  // dynamically sets the default log level filter
+  vm.logEvents.forEach(logLevel => {
+    if (vm.activeLogLevels[logLevel] === true) {
+      vm.selectedLogLevel = logLevel;
+    }
+  });
 
   vm.toggleExpandAll = false;
 
