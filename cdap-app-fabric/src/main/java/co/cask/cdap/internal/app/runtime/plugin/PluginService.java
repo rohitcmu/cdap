@@ -53,6 +53,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,29 +120,30 @@ public class PluginService extends AbstractIdleService {
 
     ArtifactDetail artifactDetail = artifactRepository.getArtifact(artifactId);
     return getPluginEndpoint(namespace, artifactDetail, pluginType, pluginName,
-                             pickParentArtifact(artifactDetail, artifactId), methodName);
+                             getParentArtifacts(artifactDetail, artifactId), methodName);
   }
 
-  private ArtifactDescriptor pickParentArtifact(ArtifactDetail artifactDetail, Id.Artifact artifact)
+  private List<ArtifactDescriptor> getParentArtifacts(ArtifactDetail artifactDetail, Id.Artifact artifact)
     throws Exception {
-
     // get parent artifacts
     Set<ArtifactRange> parentArtifactRanges = artifactDetail.getMeta().getUsableBy();
-    if (parentArtifactRanges.isEmpty()) {
-      throw new ArtifactNotFoundException(artifact.toEntityId());
-    }
 
     // just pick the first parent artifact from the set.
-    ArtifactRange parentArtifactRange = parentArtifactRanges.iterator().next();
+    List<ArtifactDescriptor> artifactDescriptors = new ArrayList<>();
+    for (ArtifactRange artifactRange : parentArtifactRanges) {
+      List<ArtifactDetail> artifactDetails = artifactRepository.getArtifacts(artifactRange);
+      if (!artifactDetails.isEmpty()) {
+        // add the latest version
+        artifactDescriptors.add(artifactDetails.get(artifactDetails.size() - 1).getDescriptor());
+      }
+    }
 
-    List<ArtifactDetail> artifactDetails = artifactRepository.getArtifacts(parentArtifactRange);
-    if (artifactDetails.isEmpty()) {
-      // should not happen
+    if (artifactDescriptors.isEmpty()) {
       throw new ArtifactNotFoundException(artifact.toEntityId());
     }
 
     // return the first one from the artifact details list.
-    return artifactDetails.get(0).getDescriptor();
+    return artifactDescriptors;
   }
 
   @Override
@@ -259,7 +261,7 @@ public class PluginService extends AbstractIdleService {
 
 
   private PluginEndpoint getPluginEndpoint(NamespaceId namespace, ArtifactDetail artifactDetail, String pluginType,
-                                           String pluginName, ArtifactDescriptor parentArtifactDescriptor,
+                                           String pluginName, List<ArtifactDescriptor> parentArtifactDescriptors,
                                            String methodName)
     throws NotFoundException, IOException, ClassNotFoundException {
 
@@ -285,15 +287,14 @@ public class PluginService extends AbstractIdleService {
     }
 
     // initialize parent classloader and plugin instantiator
-    Instantiators instantiators = this.instantiators.getUnchecked(parentArtifactDescriptor);
+    Instantiators instantiators = this.instantiators.getUnchecked(parentArtifactDescriptors.iterator().next());
     PluginInstantiator pluginInstantiator = instantiators.getPluginInstantiator(artifactDetail,
                                                                                 artifactId.toArtifactId());
 
     // we pass the parent artifact to endpoint plugin context,
     // as plugin method will use this context to load other plugins.
     DefaultEndpointPluginContext defaultEndpointPluginContext =
-      new DefaultEndpointPluginContext(namespace, artifactRepository, pluginInstantiator,
-                                       Id.Artifact.from(namespace.toId(), parentArtifactDescriptor.getArtifactId()));
+      new DefaultEndpointPluginContext(namespace, artifactRepository, pluginInstantiator, parentArtifactDescriptors);
 
     return getPluginEndpoint(pluginInstantiator, artifactId,
                              pluginClass, methodName, defaultEndpointPluginContext);
