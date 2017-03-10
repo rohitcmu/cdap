@@ -29,15 +29,15 @@ import javax.annotation.Nullable;
  * App to demonstrate a data pipeline that processes Wikipedia data using a CDAP Workflow.
  */
 public class WikipediaPipelineApp extends AbstractApplication<WikipediaPipelineApp.WikipediaAppConfig> {
-  public static final String PAGE_TITLES_STREAM = "pageTitleStream";
-  public static final String RAW_WIKIPEDIA_STREAM = "wikiStream";
-  public static final String PAGE_TITLES_DATASET = "pages";
-  public static final String RAW_WIKIPEDIA_DATASET = "wikidata";
-  public static final String NORMALIZED_WIKIPEDIA_DATASET = "normalized";
-  public static final String SPARK_CLUSTERING_OUTPUT_DATASET = "clustering";
-  public static final String MAPREDUCE_TOPN_OUTPUT = "topn";
-  public static final String LIKES_TO_DATASET_MR_NAME = "LikesToDataset";
-  public static final String WIKIPEDIA_TO_DATASET_MR_NAME = "WikiDataToDataset";
+  static final String PAGE_TITLES_STREAM = "pageTitleStream";
+  static final String RAW_WIKIPEDIA_STREAM = "wikiStream";
+  static final String PAGE_TITLES_DATASET = "pages";
+  static final String RAW_WIKIPEDIA_DATASET = "wikidata";
+  static final String NORMALIZED_WIKIPEDIA_DATASET = "normalized";
+  static final String SPARK_CLUSTERING_OUTPUT_DATASET = "clustering";
+  static final String MAPREDUCE_TOPN_OUTPUT = "topn";
+  static final String LIKES_TO_DATASET_MR_NAME = "LikesToDataset";
+  static final String WIKIPEDIA_TO_DATASET_MR_NAME = "WikiDataToDataset";
   static final String NAMESPACE_ARG = "namespace";
 
   @Override
