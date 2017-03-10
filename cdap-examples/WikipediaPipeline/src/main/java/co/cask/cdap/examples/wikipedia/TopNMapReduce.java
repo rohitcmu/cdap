@@ -60,7 +60,6 @@ public class TopNMapReduce extends AbstractMapReduce {
   public void initialize() throws Exception {
     MapReduceContext context = getContext();
     Map<String, String> runtimeArguments = context.getRuntimeArguments();
-    String dataNamespace = runtimeArguments.get(WikipediaPipelineApp.NAMESPACE_ARG);
     Job job = context.getHadoopJob();
     WorkflowToken workflowToken = context.getWorkflowToken();
     int topNRank = 10;
@@ -77,6 +76,7 @@ public class TopNMapReduce extends AbstractMapReduce {
     job.setNumReduceTasks(numReduceTasks);
     job.setMapperClass(TokenizerMapper.class);
     job.setReducerClass(TopNReducer.class);
+    String dataNamespace = runtimeArguments.get(WikipediaPipelineApp.NAMESPACE_ARG);
     dataNamespace = dataNamespace == null ? getContext().getNamespace() : dataNamespace;
     context.addInput(Input.ofDataset(WikipediaPipelineApp.NORMALIZED_WIKIPEDIA_DATASET).fromNamespace(dataNamespace));
     context.addOutput(Output.ofDataset(WikipediaPipelineApp.MAPREDUCE_TOPN_OUTPUT).fromNamespace(dataNamespace));
