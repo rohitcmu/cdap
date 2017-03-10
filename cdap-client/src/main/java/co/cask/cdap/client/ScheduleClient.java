@@ -259,8 +259,8 @@ public class ScheduleClient {
     return getWorkflowSchedules(workflow.toEntityId());
   }
 
-  public String getWorkflowSchedules(WorkflowId workflowId) throws IOException, UnauthenticatedException, NotFoundException,
-    UnauthorizedException {
+  public String getWorkflowSchedules(WorkflowId workflowId) throws IOException, UnauthenticatedException,
+    NotFoundException, UnauthorizedException {
     String path = String.format("apps/%s/versions/%s/workflows/%s/schedules", workflowId.getApplication(),
                                 workflowId.getVersion(), workflowId.getProgram());
     URL url = config.resolveNamespacedURLV3(workflowId.getParent().getParent(), path);
