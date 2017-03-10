@@ -72,7 +72,7 @@ public final class UpdateTimeScheduleCommand extends AbstractCommand {
 
     Schedules.Builder builder = Schedules.builder(scheduleName);
     if (constraintsMap.containsKey("maxConcurrentRuns")) {
-      builder.setMaxConcurrentRuns(Integer.valueOf("maxConcurrentRuns"));
+      builder.setMaxConcurrentRuns(Integer.valueOf(constraintsMap.get("maxConcurrentRuns")));
     }
     if (scheduleDescription != null) {
       builder.setDescription(scheduleDescription);
@@ -88,7 +88,7 @@ public final class UpdateTimeScheduleCommand extends AbstractCommand {
       new ScheduleInstanceConfiguration("TIME", schedule, programMap, propertiesMap);
 
     scheduleClient.update(scheduleId, configuration);
-    printStream.printf("Successfully updated schedule '%s' in program '%s'\n", scheduleName, appId);
+    printStream.printf("Successfully updated schedule '%s' in app '%s'\n", scheduleName, appId);
   }
 
   @Override
