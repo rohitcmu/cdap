@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.util.Map;
 
 /**
@@ -51,28 +50,23 @@ public final class UpdateTimeScheduleCommand extends AbstractCommand {
 
   @Override
   public void perform(Arguments arguments, PrintStream printStream) throws Exception {
-    String[] scheduleIdParts = arguments.get(ArgumentName.SCHEDULE.toString()).split("\\.");
-    String programType = arguments.get(ArgumentName.PROGRAM_TYPE.toString()).toUpperCase();
+    String scheduleName = arguments.get(ArgumentName.SCHEDULE_NAME.toString());
     String[] programIdParts = arguments.get(ArgumentName.PROGRAM.toString()).split("\\.");
     String scheduleDescription = arguments.getOptional(ArgumentName.DESCRIPTION.toString(), "");
     String cronExpression = arguments.get(ArgumentName.CRON_EXPRESSION.toString());
     String schedulePropertiesString = arguments.getOptional(ArgumentName.SCHEDULE_PROPERTIES.toString(), "");
-    String scheduleRunConstraintsString = arguments.getOptional(ArgumentName.SCHEDULE_RUN_CONSTRAINTS.toString(), "");
+    String scheduleRunConcurrencyString = arguments.getOptional(ArgumentName.SCHEDULE_RUN_CONCURRENCY.toString(), null);
 
-    if (scheduleIdParts.length < 2 || programIdParts.length < 2 || !scheduleIdParts[0].equals(programIdParts[0])) {
+    if (programIdParts.length < 2) {
       throw new CommandInputError(this);
     }
 
-    String appId = scheduleIdParts[0];
-    String scheduleName = scheduleIdParts[1];
+    String appId = programIdParts[0];
     ScheduleId scheduleId = cliConfig.getCurrentNamespace().app(appId).schedule(scheduleName);
 
-    Map<String, String> constraintsMap =
-      ArgumentParser.parseMap(scheduleRunConstraintsString, ArgumentName.SCHEDULE_RUN_CONSTRAINTS.toString());
-
     Schedules.Builder builder = Schedules.builder(scheduleName);
-    if (constraintsMap.containsKey("maxConcurrentRuns")) {
-      builder.setMaxConcurrentRuns(Integer.valueOf(constraintsMap.get("maxConcurrentRuns")));
+    if (scheduleRunConcurrencyString != null) {
+      builder.setMaxConcurrentRuns(Integer.valueOf(scheduleRunConcurrencyString));
     }
     if (scheduleDescription != null) {
       builder.setDescription(scheduleDescription);
@@ -80,7 +74,7 @@ public final class UpdateTimeScheduleCommand extends AbstractCommand {
     Schedule schedule = builder.createTimeSchedule(cronExpression);
 
     Map<String, String> programMap = ImmutableMap.of("programName", programIdParts[1],
-                                                     "programType", programType);
+                                                     "programType", ElementType.WORKFLOW.name().toUpperCase());
     Map<String, String> propertiesMap = ArgumentParser.parseMap(schedulePropertiesString,
                                                                 ArgumentName.SCHEDULE_PROPERTIES.toString());
 
@@ -93,11 +87,11 @@ public final class UpdateTimeScheduleCommand extends AbstractCommand {
 
   @Override
   public String getPattern() {
-    return String.format("update time schedule <%s> for <%s> <%s> " +
-                           "[description <%s>] at <%s> [properties <%s>] [constraints <%s>]",
-                         ArgumentName.SCHEDULE, ArgumentName.PROGRAM_TYPE, ArgumentName.PROGRAM,
-                         ArgumentName.DESCRIPTION, ArgumentName.CRON_EXPRESSION, ArgumentName.SCHEDULE_PROPERTIES,
-                         ArgumentName.SCHEDULE_RUN_CONSTRAINTS);
+    return String.format("update time schedule <%s> for workflow <%s> " +
+                           "[description <%s>] at <%s> [concurrency <%s>] [properties <%s>]",
+                         ArgumentName.SCHEDULE_NAME, ArgumentName.PROGRAM,
+                         ArgumentName.DESCRIPTION, ArgumentName.CRON_EXPRESSION, ArgumentName.SCHEDULE_RUN_CONCURRENCY,
+                         ArgumentName.SCHEDULE_PROPERTIES);
   }
 
   @Override

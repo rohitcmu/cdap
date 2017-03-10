@@ -71,7 +71,6 @@ public enum ArgumentName {
   QUERY("query"),
   APP("app-id"),
   APP_VERSION("app-version"),
-  PROGRAM_TYPE("program-type"),
   PROGRAM_TYPES("program-types"),
   VIEW("view-id"),
   HTTP_METHOD("http-method"),
@@ -79,8 +78,9 @@ public enum ArgumentName {
   HEADERS("headers"),
   HTTP_BODY("body"),
   CRON_EXPRESSION("cron-expression"),
+  SCHEDULE_NAME("schedule-name"),
   SCHEDULE_PROPERTIES("schedule-properties"),
-  SCHEDULE_RUN_CONSTRAINTS("schedule-run-constraints"),
+  SCHEDULE_RUN_CONCURRENCY("schedule-run-concurrency"),
   /**
    * stream format
    */

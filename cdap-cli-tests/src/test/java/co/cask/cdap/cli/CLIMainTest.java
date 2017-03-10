@@ -833,17 +833,21 @@ public class CLIMainTest extends CLITestBase {
     testCommandOutputContains(cli, "get workflow logs " + workflow, FakeWorkflow.FAKE_LOG);
 
     // Test schedule
-    String fakeSchedule = String.format("%s.%s", FakeApp.NAME, FakeWorkflow.SCHEDULE);
     testCommandOutputContains(
-      cli, String.format("add time schedule %s for workflow %s at \"0 4 * * *\"", fakeSchedule, workflow),
+      cli, String.format("add time schedule %s for workflow %s at \"0 4 * * *\"", FakeWorkflow.SCHEDULE, workflow),
       String.format("Successfully added schedule '%s' in app '%s'", FakeWorkflow.SCHEDULE, FakeApp.NAME));
     testCommandOutputContains(cli, String.format("get workflow schedules %s", workflow), "0 4 * * *");
+
     testCommandOutputContains(
       cli, String.format("update time schedule %s for workflow %s description \"testdesc\" at \"* * * * *\" " +
-                           "properties \"key=value\" constraints \"maxConcurrentRuns=4\"", fakeSchedule, workflow),
+                           "concurrency 4 properties \"key=value\"", FakeWorkflow.SCHEDULE, workflow),
       String.format("Successfully updated schedule '%s' in app '%s'", FakeWorkflow.SCHEDULE, FakeApp.NAME));
+    testCommandOutputContains(cli, String.format("get workflow schedules %s", workflow), "* * * * *");
+    testCommandOutputContains(cli, String.format("get workflow schedules %s", workflow), "testdesc");
+    testCommandOutputContains(cli, String.format("get workflow schedules %s", workflow), "{\"key\":\"value\"}");
+
     testCommandOutputContains(
-      cli, String.format("delete schedule %s", fakeSchedule),
+      cli, String.format("delete schedule %s.%s", FakeApp.NAME, FakeWorkflow.SCHEDULE),
       String.format("Successfully deleted schedule '%s' in app '%s'", FakeWorkflow.SCHEDULE, FakeApp.NAME));
     testCommandOutputNotContains(cli, String.format("get workflow schedules %s", workflow), "* * * * *");
     testCommandOutputNotContains(cli, String.format("get workflow schedules %s", workflow), "testdesc");

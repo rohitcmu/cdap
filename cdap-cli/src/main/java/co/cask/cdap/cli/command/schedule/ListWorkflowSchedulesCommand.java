@@ -93,7 +93,7 @@ public final class ListWorkflowSchedulesCommand extends AbstractCommand {
       return String.format("cron entry: %s", timeSchedule.getCronEntry());
     } else if (schedule instanceof StreamSizeSchedule) {
       StreamSizeSchedule streamSizeSchedule = (StreamSizeSchedule) schedule;
-      return String.format("stream: %s trigger MB: %d",
+      return String.format("stream: %s, trigger MB: %d",
                            streamSizeSchedule.getStreamName(), streamSizeSchedule.getDataTriggerMB());
     } else {
       return "";
