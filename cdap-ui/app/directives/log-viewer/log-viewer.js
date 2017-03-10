@@ -152,6 +152,7 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
 
   let proximityVal = Number.MAX_VALUE;
   let newTime;
+  let timeout;
 
   vm.inViewScrollUpdate = (index, isInview, event) => {
 
@@ -574,7 +575,7 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
   }
 
   function checkForScrollbar() {
-    $timeout(function(){
+    timeout = $timeout(function(){
       let tbodyEl = angular.element(document.querySelector('.logs-table table tbody'))[0];
       if (tbodyEl.clientHeight < tbodyEl.scrollHeight) {
         vm.scrollBarShown = true;
@@ -707,6 +708,9 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
   $scope.$on('$destroy', function() {
     if (unsub) {
       unsub();
+    }
+    if (timeout) {
+      $timeout.cancel(timeout);
     }
     angular.element($window).unbind('resize', checkForScrollbar);
     LogViewerStore.dispatch({
