@@ -16,6 +16,7 @@
 
 import React, {PropTypes} from 'react';
 import T from 'i18n-react';
+import NamespaceStore from 'services/NamespaceStore';
 import PlusButtonStore from 'services/PlusButtonStore';
 require('./NoEntitiesMessage.scss');
 
@@ -28,8 +29,8 @@ export default function NoEntitiesMessage({searchText, filtersAreApplied, clearS
       }
     });
   };
-
-  let emptyMessage = T.translate('features.EntityListView.emptyMessage.default');
+  let namespace = NamespaceStore.getState().selectedNamespace;
+  let emptyMessage = T.translate('features.EntityListView.emptyMessage.default', {namespace});
   let clearText;
 
   if (searchText) {
