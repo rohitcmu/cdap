@@ -56,12 +56,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingDeque;
@@ -92,6 +94,7 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
   private final int queueSize;
   private final BlockingQueue<MetricValues> records;
   private final ConcurrentMap<TopicIdMetaKey, byte[]> topicMessageIds;
+  private final ConcurrentMap<TopicIdMetaKey, Long> topicLatestTime;
   private final AtomicBoolean persistingFlag;
   private final int metricsProcessIntervalMillis;
   private final List<ProcessMetricsThread> processMetricsThreads;
@@ -148,6 +151,7 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
     this.processMetricsThreads = new ArrayList<>();
     this.records = new ArrayBlockingQueue<>(queueSize);
     this.topicMessageIds = new ConcurrentHashMap<>();
+    this.topicLatestTime = new ConcurrentHashMap<>();
     this.persistingFlag = new AtomicBoolean();
     this.metricsProcessIntervalMillis = metricsProcessIntervalMillis;
   }
@@ -227,7 +231,7 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
     LOG.info("Metrics Processing Service stopped.");
   }
 
-  private void persistRecordsMessageIds(Deque<MetricValues> metricValues,
+  private void persistRecordsMessageIds(Queue<MetricValues> metricValues,
                                         Map<TopicIdMetaKey, byte[]> messageIds) {
     try {
       if (!metricValues.isEmpty()) {
@@ -243,9 +247,9 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
     }
   }
 
-  private void persistRecords(Deque<MetricValues> metricValues) throws Exception {
+  private void persistRecords(Queue<MetricValues> metricValues) throws Exception {
     long now = System.currentTimeMillis();
-    long lastRecordTime = metricValues.getLast().getTimestamp();
+    long lastRecordTime = Collections.max(topicLatestTime.values());
     long delay = now - TimeUnit.SECONDS.toMillis(lastRecordTime);
     metricValues.add(
       new MetricValues(metricsContextMap, TimeUnit.MILLISECONDS.toSeconds(now), ImmutableList.of(
@@ -278,8 +282,13 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
     public void run() {
       while (isRunning()) {
         try {
-          processMetrics();
-          TimeUnit.MILLISECONDS.sleep(metricsProcessIntervalMillis);
+          long totalTime = processMetrics();
+          // Don't sleep when time spent to process fetched metrics is not shorter than metricsProcessIntervalMillis.
+          // Otherwise, there might be more and more unprocessed metrics accumulating during sleep, since the speed of
+          // processing is not fast enough to catch up.
+          if (totalTime < metricsProcessIntervalMillis) {
+            TimeUnit.MILLISECONDS.sleep(metricsProcessIntervalMillis);
+          }
         } catch (InterruptedException e) {
           // It's triggered by stop
           Thread.currentThread().interrupt();
@@ -287,13 +296,13 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
       }
     }
 
-    private void processMetrics() {
-      // If the size of records exceeds the threshold, stop fetching for new messages and adding new records.
-      // Return to sleep for metricsProcessIntervalMillis to wait for metrics values to be persisted and
-      // removed from records.
-      if (records.size() > queueSize) {
-        return;
-      }
+    /**
+     * Fetch at most {@code fetcherLimit} metrics and process them
+     *
+     * @return total time spent to fetch and process metrics
+     */
+    private long processMetrics() {
+      long startTime = System.currentTimeMillis();
       try {
         MessageFetcher fetcher = messagingService.prepareFetch(topicIdMetaKey.getTopicId());
         fetcher.setLimit(fetcherLimit);
@@ -316,6 +325,7 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
               payloadInput.reset(input.getPayload());
               MetricValues metricValues = recordReader.read(decoder, recordSchema);
               records.put(metricValues);
+              topicLatestTime.put(topicIdMetaKey, metricValues.getTimestamp());
               currentMessageId = input.getId();
               if (LOG.isTraceEnabled()) {
                 LOG.trace("Received message {} with metrics: {}", Bytes.toStringBinary(currentMessageId), metricValues);
@@ -332,14 +342,14 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
 
         // Skip persisting if the records is empty
         if (records.isEmpty()) {
-          return;
+          return System.currentTimeMillis() - startTime;
         }
 
         // Ensure there's only one thread can persist records and messageId's when the persistingFlag is false.
         // The thread set persistingFlag to true when it starts to persist.
         if (!persistingFlag.compareAndSet(false, true)) {
           LOG.trace("Cannot persist because persistingFlag is taken by another thread.");
-          return;
+          return System.currentTimeMillis() - startTime;
         }
         try {
           Deque<MetricValues> recordsCopy = new LinkedList<>();
@@ -359,6 +369,7 @@ public class MessagingMetricsProcessorService extends AbstractExecutionThreadSer
       } catch (Exception e) {
         LOG.warn("Failed to process metrics. Will be retried in next iteration.", e);
       }
+      return System.currentTimeMillis() - startTime;
     }
   }
 
