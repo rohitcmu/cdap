@@ -53,7 +53,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -120,30 +119,19 @@ public class PluginService extends AbstractIdleService {
 
     ArtifactDetail artifactDetail = artifactRepository.getArtifact(artifactId);
     return getPluginEndpoint(namespace, artifactDetail, pluginType, pluginName,
-                             getParentArtifacts(artifactDetail, artifactId), methodName);
+                             getParentArtifactDescriptor(artifactDetail, artifactId),
+                             artifactDetail.getMeta().getUsableBy(), methodName);
   }
 
-  private List<ArtifactDescriptor> getParentArtifacts(ArtifactDetail artifactDetail, Id.Artifact artifact)
+  private ArtifactDescriptor getParentArtifactDescriptor(ArtifactDetail artifactDetail, Id.Artifact artifact)
     throws Exception {
-    // get parent artifacts
+    // get parent artifact range
     Set<ArtifactRange> parentArtifactRanges = artifactDetail.getMeta().getUsableBy();
-
-    // just pick the first parent artifact from the set.
-    List<ArtifactDescriptor> artifactDescriptors = new ArrayList<>();
-    for (ArtifactRange artifactRange : parentArtifactRanges) {
-      List<ArtifactDetail> artifactDetails = artifactRepository.getArtifacts(artifactRange);
-      if (!artifactDetails.isEmpty()) {
-        // add the latest version
-        artifactDescriptors.add(artifactDetails.get(artifactDetails.size() - 1).getDescriptor());
-      }
-    }
-
-    if (artifactDescriptors.isEmpty()) {
+    if (parentArtifactRanges.isEmpty()) {
       throw new ArtifactNotFoundException(artifact.toEntityId());
     }
-
-    // return the first one from the artifact details list.
-    return artifactDescriptors;
+    List<ArtifactDetail> artifactDetails = artifactRepository.getArtifacts(parentArtifactRanges.iterator().next());
+    return artifactDetails.iterator().next().getDescriptor();
   }
 
   @Override
@@ -259,12 +247,11 @@ public class PluginService extends AbstractIdleService {
     }
   }
 
-
   private PluginEndpoint getPluginEndpoint(NamespaceId namespace, ArtifactDetail artifactDetail, String pluginType,
-                                           String pluginName, List<ArtifactDescriptor> parentArtifactDescriptors,
+                                           String pluginName, ArtifactDescriptor parentArtifactDescriptor,
+                                           Set<ArtifactRange> parentArtifactRanges,
                                            String methodName)
     throws NotFoundException, IOException, ClassNotFoundException {
-
     Id.Artifact artifactId = Id.Artifact.from(namespace.toId(), artifactDetail.getDescriptor().getArtifactId());
     Set<PluginClass> pluginClasses = artifactDetail.getMeta().getClasses().getPlugins();
     PluginClass pluginClass = null;
@@ -287,14 +274,14 @@ public class PluginService extends AbstractIdleService {
     }
 
     // initialize parent classloader and plugin instantiator
-    Instantiators instantiators = this.instantiators.getUnchecked(parentArtifactDescriptors.iterator().next());
+    Instantiators instantiators = this.instantiators.getUnchecked(parentArtifactDescriptor);
     PluginInstantiator pluginInstantiator = instantiators.getPluginInstantiator(artifactDetail,
                                                                                 artifactId.toArtifactId());
 
     // we pass the parent artifact to endpoint plugin context,
     // as plugin method will use this context to load other plugins.
     DefaultEndpointPluginContext defaultEndpointPluginContext =
-      new DefaultEndpointPluginContext(namespace, artifactRepository, pluginInstantiator, parentArtifactDescriptors);
+      new DefaultEndpointPluginContext(namespace, artifactRepository, pluginInstantiator, parentArtifactRanges);
 
     return getPluginEndpoint(pluginInstantiator, artifactId,
                              pluginClass, methodName, defaultEndpointPluginContext);
