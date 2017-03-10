@@ -708,6 +708,7 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
     if (unsub) {
       unsub();
     }
+    angular.element($window).unbind('resize', checkForScrollbar);
     LogViewerStore.dispatch({
       type: 'RESET'
     });
