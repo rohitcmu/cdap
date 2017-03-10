@@ -581,7 +581,7 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
       } else {
         vm.scrollBarShown = false;
       }
-    });
+    }, 50);
   }
 
   vm.toggleLogExpansion = function() {
