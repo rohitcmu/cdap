@@ -154,7 +154,9 @@ features:
         search: " your search or"
         filter: " your filters or"
         add: Add
-        entities: " new entities"
+        entities: " new entities or"
+        browse: Browse
+        Market: " Cask Market"
     Cards:
       type: "Type: "
     Errors:
