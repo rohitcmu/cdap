@@ -19,6 +19,7 @@ package co.cask.cdap.explore.guice;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.runtime.RuntimeModule;
+import co.cask.cdap.common.utils.OSDetector;
 import co.cask.cdap.explore.executor.ExploreExecutorHttpHandler;
 import co.cask.cdap.explore.executor.ExploreExecutorService;
 import co.cask.cdap.explore.executor.ExploreMetadataHttpHandler;
@@ -49,6 +50,8 @@ import com.google.inject.util.Modules;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.mapreduce.MRConfig;
+import org.apache.twill.filesystem.Location;
+import org.apache.twill.filesystem.LocationFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,14 +173,16 @@ public class ExploreRuntimeModule extends RuntimeModule {
 
       private final CConfiguration cConf;
       private final Configuration hConf;
+      private final LocationFactory locationFactory;
       private final ExploreService exploreService;
       private final boolean isInMemory;
 
       @Inject
-      ExploreServiceProvider(CConfiguration cConf, Configuration hConf,
+      ExploreServiceProvider(CConfiguration cConf, Configuration hConf, LocationFactory locationFactory,
                              @Named("explore.service.impl") ExploreService exploreService,
                              @Named("explore.inmemory") boolean isInMemory) {
         this.exploreService = exploreService;
+        this.locationFactory = locationFactory;
         this.cConf = cConf;
         this.hConf = hConf;
         this.isInMemory = isInMemory;
@@ -191,14 +196,25 @@ public class ExploreRuntimeModule extends RuntimeModule {
         // at the condition that the configuration is known by Hive, and so is one of the HiveConf.ConfVars
         // variables.
 
-        System.setProperty(HiveConf.ConfVars.SCRATCHDIR.toString(),
-                           new File(hiveDataDir, cConf.get(Constants.AppFabric.TEMP_DIR)).getAbsolutePath());
+        File scratchDir = new File(hiveDataDir, cConf.get(Constants.AppFabric.TEMP_DIR));
+        System.setProperty(HiveConf.ConfVars.SCRATCHDIR.toString(), scratchDir.getAbsolutePath());
 
         // Reset hadoop tmp dir because Hive does not pick it up from hConf
         System.setProperty("hadoop.tmp.dir", hConf.get("hadoop.tmp.dir"));
 
         File warehouseDir = new File(cConf.get(Constants.Explore.LOCAL_DATA_DIR), "warehouse");
         File databaseDir = new File(cConf.get(Constants.Explore.LOCAL_DATA_DIR), "database");
+
+        if (OSDetector.isWindows()) {
+          // CDAP-4213 If it is a Windows OS, try to create the Hive Scratch Dir with full permissions
+          Location location = locationFactory.create(scratchDir.toURI());
+          try {
+            location.mkdirs("777");
+          } catch (IOException ex) {
+            LOG.debug("Exception while trying to create Hive Scratch Directory {} with '777' permissions.",
+                      scratchDir, ex);
+          }
+        }
 
         if (isInMemory) {
           // This seed is required to make all tests pass when launched together, and when several of them
