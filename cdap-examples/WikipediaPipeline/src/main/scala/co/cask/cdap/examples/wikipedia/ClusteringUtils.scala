@@ -105,12 +105,8 @@ object ClusteringUtils {
 
     sec.execute(new TxRunnable {
       override def run(context: DatasetContext) = {
-        var table: Table = null
-        if (namespace != null) {
-          table = context.getDataset(namespace, tableName)
-        } else {
-          table = context.getDataset(tableName)
-        }
+        var table: Table = if (namespace != null) context.getDataset(namespace, tableName)
+          else context.getDataset(tableName)
         results.zipWithIndex.foreach { case (topic, i) =>
           val put: Put = new Put(Bytes.toBytes(i))
           topic.foreach { case (term, weight) =>
