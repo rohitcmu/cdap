@@ -59,13 +59,14 @@ public class WikipediaService extends AbstractService {
   public static final class WikipediaHandler extends AbstractHttpServiceHandler {
     private Table clusteringTable;
     private KeyValueTable topNKVTable;
-    private String dataNamespace;
 
     @Override
     public void initialize(HttpServiceContext context) throws Exception {
       super.initialize(context);
-      String namespaceArg = context.getRuntimeArguments().get(WikipediaPipelineApp.NAMESPACE_ARG);
-      dataNamespace = namespaceArg != null ? namespaceArg : context.getNamespace();
+      String dataNamespace = context.getRuntimeArguments().get(WikipediaPipelineApp.NAMESPACE_ARG);
+      dataNamespace = dataNamespace != null ? dataNamespace : context.getNamespace();
+      clusteringTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
+      topNKVTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.MAPREDUCE_TOPN_OUTPUT);
     }
 
     /**
@@ -76,7 +77,6 @@ public class WikipediaService extends AbstractService {
     @Path("/lda/topics")
     public void getTopics(HttpServiceRequest request, HttpServiceResponder responder) {
       List<Integer> topics = new ArrayList<>();
-      clusteringTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
       Scanner scanner = clusteringTable.scan(null, null);
       Row row;
       while ((row = scanner.next()) != null) {
@@ -95,7 +95,6 @@ public class WikipediaService extends AbstractService {
     @Path("/lda/topics/{topic}")
     public void getTopic(HttpServiceRequest request, HttpServiceResponder responder,
                          @PathParam("topic") Integer topic) {
-      clusteringTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.SPARK_CLUSTERING_OUTPUT_DATASET);
       Row row = clusteringTable.get(Bytes.toBytes(topic));
       if (row.isEmpty()) {
         responder.sendError(404, String.format("Topic %s was not found.", topic));
@@ -117,7 +116,6 @@ public class WikipediaService extends AbstractService {
     @Path("/topn/words")
     public void getTopNWords(HttpServiceRequest request, HttpServiceResponder responder) {
       List<JsonObject> words = new ArrayList<>();
-      topNKVTable = getContext().getDataset(dataNamespace, WikipediaPipelineApp.MAPREDUCE_TOPN_OUTPUT);
       CloseableIterator<KeyValue<byte[], byte[]>> scanner = topNKVTable.scan(null, null);
       while (scanner.hasNext()) {
         KeyValue<byte[], byte[]> next = scanner.next();
