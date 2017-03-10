@@ -615,8 +615,11 @@ function LogViewerController ($scope, $window, LogViewerStore, myLogsApi, LOGVIE
     checkForScrollbar();
   };
 
-  vm.includeEvent = function(eventType){
-    if (eventType === vm.selectedLogLevel) { return; }
+  vm.includeEvent = function(event, eventType){
+    if (eventType === vm.selectedLogLevel) {
+      event.preventDefault();
+      return;
+    }
 
     vm.endRequest = false;
 

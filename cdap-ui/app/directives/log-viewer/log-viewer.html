@@ -96,7 +96,7 @@
               </span>
               <ul uib-dropdown-menu ng-click="$event.stopPropagation();">
                 <li ng-repeat="option in LogViewer.logEvents"
-                    ng-click="LogViewer.includeEvent(option)">
+                    ng-click="LogViewer.includeEvent($event, option)">
                   <input
                     type="checkbox"
                     ng-model="LogViewer.activeLogLevels[option]"/>
